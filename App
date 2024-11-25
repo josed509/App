@@ -1,0 +1,150 @@
+# Appusing System;
+using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
+using System.Windows.Forms;
+
+namespace PhishingDetectionApp
+{
+    public partial class Form1 : Form
+    {
+        // Simulación de la blockchain como una lista de bloques
+        private List<Block> blockchain;
+
+        public Form1()
+        {
+            InitializeComponent();
+            InitializeBlockchain();
+        }
+
+        // Método para inicializar la cadena de bloques
+        private void InitializeBlockchain()
+        {
+            blockchain = new List<Block>();
+            // Crear el bloque génesis
+            Block genesisBlock = new Block(0, DateTime.Now, "Genesis Block", "0");
+            blockchain.Add(genesisBlock);
+        }
+
+        // Evento al presionar el botón "Verificar"
+        private void btnCheck_Click(object sender, EventArgs e)
+        {
+            string input = txtInput.Text.Trim();
+            if (string.IsNullOrEmpty(input))
+            {
+                lblResult.Text = "Por favor, ingrese un enlace o correo.";
+                return;
+            }
+
+            // Verificar si el enlace está en la blockchain
+            foreach (var block in blockchain)
+            {
+                if (block.Data == input)
+                {
+                    lblResult.Text = $"El enlace/correo está autenticado. ¡No es phishing!\nHash asociado: {block.Hash}";
+                    return;
+                }
+            }
+
+            lblResult.Text = "Advertencia: El enlace/correo no está autenticado. Podría ser phishing.";
+        }
+
+        // Evento al presionar el botón "Agregar a la blockchain"
+        private void btnAddToBlockchain_Click(object sender, EventArgs e)
+        {
+            string input = txtInput.Text.Trim();
+            if (string.IsNullOrEmpty(input))
+            {
+                lblResult.Text = "";
+                return;
+            }
+
+            // Agregar el enlace a la blockchain
+            AddToBlockchain(input);
+            lblResult.Text = "El enlace/correo fue agregado exitosamente a la blockchain.";
+        }
+
+        // Método para verificar si un enlace está en la blockchain
+        private bool IsInBlockchain(string data)
+        {
+            foreach (var block in blockchain)
+            {
+                if (block.Data == data)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Método para agregar un enlace/correo a la blockchain
+        private void AddToBlockchain(string data)
+        {
+            Block previousBlock = blockchain[blockchain.Count - 1];
+            Block newBlock = new Block(blockchain.Count, DateTime.Now, data, previousBlock.Hash);
+            blockchain.Add(newBlock);
+
+            // Mostrar el hash del nuevo bloque en el formulario
+            lblResult.Text = $"El enlace/correo fue agregado exitosamente a la blockchain.\nHash generado: {newBlock.Hash}";
+
+        }
+
+        private void btnSalir_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void btnShowBlockchain_Click(object sender, EventArgs e)
+        {
+            StringBuilder blockchainData = new StringBuilder("Blockchain:\n");
+
+            foreach (var block in blockchain)
+            {
+                blockchainData.AppendLine($"Índice: {block.Index}");
+                blockchainData.AppendLine($"Fecha: {block.Timestamp}");
+                blockchainData.AppendLine($"Datos: {block.Data}");
+                blockchainData.AppendLine($"Hash: {block.Hash}");
+                blockchainData.AppendLine($"Hash anterior: {block.PreviousHash}\n");
+            }
+
+            MessageBox.Show(blockchainData.ToString(), "Información de la Blockchain");
+        }
+    }
+
+    // Clase que representa un bloque en la blockchain
+    public class Block
+    {
+        public int Index { get; }
+        public DateTime Timestamp { get; }
+        public string Data { get; }
+        public string PreviousHash { get; }
+        public string Hash { get; }
+
+        public Block(int index, DateTime timestamp, string data, string previousHash)
+        {
+            Index = index;
+            Timestamp = timestamp;
+            Data = data;
+            PreviousHash = previousHash;
+            Hash = CalculateHash();
+        }
+
+        // Método para calcular el hash del bloque
+        private string CalculateHash()
+        {
+            string input = $"{Index}{Timestamp}{Data}{PreviousHash}";
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+                StringBuilder builder = new StringBuilder();
+                foreach (var b in bytes)
+                {
+                    builder.Append(b.ToString("x2"));
+                }
+                return builder.ToString();
+            }
+        }
+
+    }
+
+}
